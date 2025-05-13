@@ -1,24 +1,25 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { parsedGeoJSON } from '../data/parsedGeoJSON';
+import RiverSearch from './RiverSearch';
 
 const Map = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<maplibregl.Map | null>(null);
+  const [map, setMap] = useState<maplibregl.Map | null>(null);
   const popup = useRef<maplibregl.Popup | null>(null);
 
   useEffect(() => {
     if (!mapContainer.current) return;
 
-    map.current = new maplibregl.Map({
+    const map = new maplibregl.Map({
       container: mapContainer.current,
       style: 'https://tiles.stadiamaps.com/styles/osm_bright.json',
       center: [37.7333, 55.9833], // Пироговское водохранилище coordinates
       zoom: 11
     });
 
-    map.current.addControl(new maplibregl.NavigationControl());
+    map.addControl(new maplibregl.NavigationControl());
 
     // Create a popup but don't add it to the map yet
     popup.current = new maplibregl.Popup({
@@ -26,11 +27,9 @@ const Map = () => {
       closeOnClick: false
     });
 
-    map.current.on('load', () => {
-      if (!map.current) return;
-
+    map.on('load', () => {
       // Add polygon layer
-      map.current.addLayer({
+      map.addLayer({
         id: 'restricted-areas',
         type: 'fill',
         source: {
@@ -48,7 +47,7 @@ const Map = () => {
       });
 
       // Add line layer
-      map.current.addLayer({
+      map.addLayer({
         id: 'routes',
         type: 'line',
         source: {
@@ -65,7 +64,7 @@ const Map = () => {
       });
 
       // Add point layer
-      map.current.addLayer({
+      map.addLayer({
         id: 'markers',
         type: 'circle',
         source: {
@@ -84,10 +83,10 @@ const Map = () => {
       });
 
       // Add hover effect
-      map.current?.on("mousemove", ['restricted-areas', 'routes', 'markers'], (e) => {
-        if (!map.current) return;
+      map?.on("mousemove", ['restricted-areas', 'routes', 'markers'], (e) => {
+        if (!map) return;
         if (e.features?.[0]) {
-          map.current.getCanvas().style.cursor = 'pointer';
+          map.getCanvas().style.cursor = 'pointer';
           
           // Show popup
           const feature = e.features[0];
@@ -96,30 +95,35 @@ const Map = () => {
           popup.current
             ?.setLngLat(coordinates)
             .setHTML(`<h3>${feature.properties.name}</h3>`)
-            .addTo(map.current);
+            .addTo(map);
         } else {
-          map.current.getCanvas().style.cursor = '';
+          map.getCanvas().style.cursor = '';
           popup.current?.remove();
         }
       });
 
-      map.current?.on("mouseleave", ['restricted-areas', 'routes', 'markers'], () => {
-        if (!map.current) return;
-        map.current.getCanvas().style.cursor = '';
+      map?.on("mouseleave", ['restricted-areas', 'routes', 'markers'], () => {
+        if (!map) return;
+        map.getCanvas().style.cursor = '';
         popup.current?.remove();
       });
+
+      setMap(map);
     });
 
     return () => {
-      map.current?.remove();
+      map?.remove();
     };
   }, []);
 
   return (
-    <div 
-      ref={mapContainer} 
-      className='w-full relative h-screen'
-    />
+    <>
+      <RiverSearch map={map} />
+      <div 
+        ref={mapContainer} 
+        className='w-full relative h-screen'
+      />
+    </>
   );
 };
 
