@@ -21,7 +21,7 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden">
-      <div className="w-[400px] h-full border-r border-gray-200 overflow-y-auto bg-white">
+      <div className="w-1/3 h-full border-r border-gray-200 overflow-y-auto bg-white">
         <RegionList 
           regions={regions}
           selectedRegion={selectedRegion}

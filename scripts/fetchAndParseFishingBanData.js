@@ -298,15 +298,13 @@ async function downloadDocument(url, filename, documentsDir) {
     saveToFile(contentJsonPath, JSON.stringify({
       filename,
       extractedAt: new Date().toISOString(),
-      content: extractedContent,
-      locationTables: extractedContent.tables.filter(t => t.hasLocationData)
+      content: extractedContent
     }, null, 2));
 
     return {
       filePath: path.relative(dataDir, filePath),
       contentPath: path.relative(dataDir, contentJsonPath),
       hasContent: extractedContent.text.length > 0,
-      hasLocationData: extractedContent.tables.some(t => t.hasLocationData),
       extractionMessages: extractedContent.messages
     };
   } catch (error) {
@@ -371,7 +369,6 @@ async function parseRegionPage(html, baseUrl, documentsDir) {
         filePath: docResult.filePath,
         contentPath: docResult.contentPath,
         hasContent: docResult.hasContent,
-        hasLocationData: docResult.hasLocationData,
         extractionMessages: docResult.extractionMessages
       });
       
@@ -518,7 +515,6 @@ async function fetchAllData() {
         region.documents.forEach(doc => {
           console.log(`- ${doc.title}:`);
           console.log(`  Path: ${doc.filePath}`);
-          console.log(`  Has location data: ${doc.hasLocationData ? 'Yes' : 'No'}`);
         });
       }
     });

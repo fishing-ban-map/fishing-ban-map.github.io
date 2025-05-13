@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import type { FishingBanRegion } from '../types/regions';
+import Region from './Region';
 
 interface RegionListProps {
   regions: FishingBanRegion[];
@@ -7,6 +9,22 @@ interface RegionListProps {
 }
 
 export default function RegionList({ regions, selectedRegion, onRegionSelect }: RegionListProps) {
+  const [selectedRegionData, setSelectedRegionData] = useState<FishingBanRegion | null>(null);
+
+  const handleRegionClick = (region: FishingBanRegion) => {
+    setSelectedRegionData(region);
+    onRegionSelect(region.region);
+  };
+
+  const handleBack = () => {
+    setSelectedRegionData(null);
+    onRegionSelect('');
+  };
+
+  if (selectedRegionData) {
+    return <Region region={selectedRegionData} onBack={handleBack} />;
+  }
+
   return (
     <div className="p-5 h-full flex flex-col">
       <h2 className="mb-5 text-2xl font-semibold text-gray-800">
@@ -21,7 +39,7 @@ export default function RegionList({ regions, selectedRegion, onRegionSelect }: 
                 ? 'bg-blue-50 border-blue-500' 
                 : 'border-gray-200'
             }`}
-            onClick={() => onRegionSelect(region.region)}
+            onClick={() => handleRegionClick(region)}
           >
             <h3 className="mb-2 text-lg font-medium text-blue-700">
               {region.region}
@@ -30,14 +48,6 @@ export default function RegionList({ regions, selectedRegion, onRegionSelect }: 
               <div className="text-sm text-gray-600">
                 <p className="mb-1">
                   Documents: {region.documents.length}
-                </p>
-                <p className="flex items-center">
-                  Location data: 
-                  {region.documents.some(d => d.hasLocationData) ? (
-                    <span className="ml-1 text-green-600">Yes</span>
-                  ) : (
-                    <span className="ml-1 text-red-600">No</span>
-                  )}
                 </p>
               </div>
             )}

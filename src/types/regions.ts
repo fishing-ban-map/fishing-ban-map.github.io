@@ -10,7 +10,6 @@ export interface Document {
   filePath: string;
   contentPath: string;
   hasContent: boolean;
-  hasLocationData: boolean;
   extractionMessages: any[];
 }
 
