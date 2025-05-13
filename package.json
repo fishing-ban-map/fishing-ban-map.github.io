@@ -1,7 +1,7 @@
 {
-  "name": "first",
+  "name": "fishing-ban-map",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "homepage": "https://fishing-ban-map.github.io",
   "scripts": {
@@ -10,10 +10,15 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "predeploy": "yarn build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "fetch-data": "node scripts/fetchFishingBanData.js",
+    "parse-data": "node scripts/parseFishingBanData.js",
+    "update-fishing-data": "node scripts/fetchAndParseFishingBanData.js"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.6",
+    "cheerio": "^1.0.0",
+    "mammoth": "^1.9.0",
     "maplibre-gl": "^5.5.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
