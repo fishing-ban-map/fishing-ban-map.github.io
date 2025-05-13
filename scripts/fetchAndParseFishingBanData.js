@@ -84,15 +84,62 @@ function createSafeFilename(name) {
     .replace(/-+/g, '-');
 }
 
+// Function to parse table from HTML content
+function parseLocationTable(html) {
+  const $ = cheerio.load(html);
+  const tables = [];
+  
+  $('table').each((tableIndex, tableElement) => {
+    const table = {
+      index: tableIndex,
+      headers: [],
+      rows: [],
+      hasLocationData: false
+    };
+
+    // Extract headers
+    $(tableElement).find('tr').first().find('td, th').each((_, cell) => {
+      table.headers.push($(cell).text().trim());
+    });
+
+    // Check if this table might contain location data
+    const headerText = table.headers.join(' ').toLowerCase();
+    const locationKeywords = ['водоем', 'участок', 'местоположение', 'река', 'озеро', 'водохранилище', 'координаты'];
+    table.hasLocationData = locationKeywords.some(keyword => headerText.includes(keyword));
+
+    // Extract rows
+    $(tableElement).find('tr').slice(1).each((_, row) => {
+      const rowData = [];
+      $(row).find('td').each((_, cell) => {
+        rowData.push($(cell).text().trim());
+      });
+      if (rowData.length > 0) {
+        table.rows.push(rowData);
+      }
+    });
+
+    // Only add tables that have data
+    if (table.rows.length > 0) {
+      tables.push(table);
+    }
+  });
+
+  return tables;
+}
+
 // Function to extract content from a Word document
 async function extractDocumentContent(filePath) {
   try {
     const result = await mammoth.extractRawText({ path: filePath });
     const htmlResult = await mammoth.convertToHtml({ path: filePath });
     
+    // Parse tables from HTML content
+    const tables = parseLocationTable(htmlResult.value);
+    
     return {
       text: result.value,
       html: htmlResult.value,
+      tables: tables,
       messages: [...result.messages, ...htmlResult.messages]
     };
   } catch (error) {
@@ -100,6 +147,7 @@ async function extractDocumentContent(filePath) {
     return {
       text: '',
       html: '',
+      tables: [],
       messages: [{ type: 'error', message: error.message }]
     };
   }
@@ -122,13 +170,15 @@ async function downloadDocument(url, filename, documentsDir) {
     saveToFile(contentJsonPath, JSON.stringify({
       filename,
       extractedAt: new Date().toISOString(),
-      content: extractedContent
+      content: extractedContent,
+      locationTables: extractedContent.tables.filter(t => t.hasLocationData)
     }, null, 2));
 
     return {
       filePath: path.relative(dataDir, filePath),
       contentPath: path.relative(dataDir, contentJsonPath),
       hasContent: extractedContent.text.length > 0,
+      hasLocationData: extractedContent.tables.some(t => t.hasLocationData),
       extractionMessages: extractedContent.messages
     };
   } catch (error) {
@@ -193,6 +243,7 @@ async function parseRegionPage(html, baseUrl, documentsDir) {
         filePath: docResult.filePath,
         contentPath: docResult.contentPath,
         hasContent: docResult.hasContent,
+        hasLocationData: docResult.hasLocationData,
         extractionMessages: docResult.extractionMessages
       });
       
@@ -331,13 +382,15 @@ async function fetchAllData() {
     console.log(`\nFound ${regions.length} regions`);
     console.log(`Complete data saved to: ${jsonOutputFile}`);
     
-    // Print summary
+    // Print summary with location data information
     regions.forEach(region => {
       console.log(`\nRegion: ${region.region}`);
       console.log(`Documents found: ${region.documents?.length || 0}`);
       if (region.documents?.length > 0) {
         region.documents.forEach(doc => {
-          console.log(`- ${doc.title}: ${doc.filePath}`);
+          console.log(`- ${doc.title}:`);
+          console.log(`  Path: ${doc.filePath}`);
+          console.log(`  Has location data: ${doc.hasLocationData ? 'Yes' : 'No'}`);
         });
       }
     });
