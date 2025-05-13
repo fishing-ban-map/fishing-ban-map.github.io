@@ -84,6 +84,121 @@ function createSafeFilename(name) {
     .replace(/-+/g, '-');
 }
 
+// Function to parse points from text
+function parsePoints(text) {
+  // Remove extra spaces and normalize line endings
+  text = text.replace(/\s+/g, ' ').trim();
+  
+  // If text is empty, return empty array
+  if (!text) return [];
+
+  let points = [];
+
+  // Try to split by different patterns
+  if (text.match(/^\d+\./m)) {
+    // Numbered list (1. 2. 3.)
+    points = text.split(/\d+\.\s*/)
+      .map(p => p.trim())
+      .filter(p => p.length > 0);
+  } else if (text.match(/^[а-я]\)/mi)) {
+    // Lettered list (а) б) в))
+    points = text.split(/[а-я]\)\s*/i)
+      .map(p => p.trim())
+      .filter(p => p.length > 0);
+  } else if (text.includes(';')) {
+    // Semicolon separated
+    points = text.split(';')
+      .map(p => p.trim())
+      .filter(p => p.length > 0);
+  } else if (text.includes('–')) {
+    // Dash separated
+    points = text.split('–')
+      .map(p => p.trim())
+      .filter(p => p.length > 0);
+  } else if (text.includes('-')) {
+    // Hyphen separated (fallback)
+    points = text.split('-')
+      .map(p => p.trim())
+      .filter(p => p.length > 0);
+  }
+
+  // If no points were detected, return the original text as a single point
+  return points.length > 0 ? points : [text];
+}
+
+// Function to check if text contains a list of points
+function containsPointsList(text) {
+  // Common patterns that indicate a list
+  const patterns = [
+    /\d+\./,           // Numbered list (1. 2. 3.)
+    /[а-я]\)/i,        // Lettered list (а) б) в))
+    /;\s+/,            // Semicolon separated with space
+    /\s+[-–]\s+/,      // Dash/hyphen with spaces
+  ];
+
+  return patterns.some(pattern => pattern.test(text));
+}
+
+// Function to convert DMS to decimal degrees
+function dmsToDecimal(degrees, minutes, seconds) {
+  return degrees + (minutes / 60) + (seconds / 3600);
+}
+
+// Function to parse coordinate point
+function parseCoordinate(coordText) {
+  // Match pattern: degrees°minutes'seconds,decimals" direction
+  const pattern = /(\d+)°(\d+)'(\d+,\d+)"\s*(с\.ш\.|в\.д\.)/g;
+  const matches = [...coordText.matchAll(pattern)];
+  
+  if (matches.length === 0) return null;
+
+  return matches.map(match => {
+    const [_, degrees, minutes, seconds, direction] = match;
+    const decimal = dmsToDecimal(
+      parseInt(degrees),
+      parseInt(minutes),
+      parseFloat(seconds.replace(',', '.'))
+    );
+    return {
+      decimal,
+      direction: direction === 'с.ш.' ? 'N' : 'E'
+    };
+  });
+}
+
+// Function to parse coordinate points list
+function parseCoordinatePoints(text) {
+  // Remove extra spaces and normalize line endings
+  text = text.replace(/\s+/g, ' ').trim();
+  
+  // Find all coordinate pairs using lookahead to handle points without spaces
+  const pointPattern = /\d+\.\s*(\d+°\d+'[\d,]+"\s*с\.ш\.?\s*\d+°\d+'[\d,]+"\s*в\.д\.?)(?=\d+\.|$)/g;
+  const points = [...text.matchAll(pointPattern)]
+    .map(match => match[1])
+    .filter(p => p && p.trim().length > 0);
+
+  return points.map((point, index) => {
+    const coords = parseCoordinate(point);
+    if (!coords || coords.length !== 2) return null;
+
+    return {
+      index: index + 1,
+      lat: coords[0].decimal,  // с.ш. - N
+      lon: coords[1].decimal,  // в.д. - E
+      original: point
+    };
+  }).filter(p => p !== null);
+}
+
+// Function to check if text contains coordinate points
+function containsCoordinatePoints(text) {
+  // Check for typical patterns in coordinate lists:
+  // - Numbers with degree symbols
+  // - с.ш. (latitude) and в.д. (longitude) markers
+  // - Numbered points
+  return /\d+\.\s*\d+°\d+'[\d,]+"\s*с\.ш\..*\d+°\d+'[\d,]+"\s*в\.д\./.test(text);
+}
+
 // Function to parse table from HTML content
 function parseLocationTable(html) {
   const $ = cheerio.load(html);
@@ -110,9 +225,22 @@ function parseLocationTable(html) {
     // Extract rows
     $(tableElement).find('tr').slice(1).each((_, row) => {
       const rowData = [];
-      $(row).find('td').each((_, cell) => {
-        rowData.push($(cell).text().trim());
+      $(row).find('td').each((cellIndex, cell) => {
+        const cellText = $(cell).text().trim();
+        
+        // Check if the cell contains coordinate points
+        if (containsCoordinatePoints(cellText)) {
+          const points = parseCoordinatePoints(cellText);
+          rowData.push({
+            type: 'coordinates',
+            original: cellText,
+            points: points
+          });
+        } else {
+          rowData.push(cellText);
+        }
       });
+      
       if (rowData.length > 0) {
         table.rows.push(rowData);
       }
