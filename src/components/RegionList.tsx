@@ -1,0 +1,49 @@
+import type { FishingBanRegion } from '../types/regions';
+
+interface RegionListProps {
+  regions: FishingBanRegion[];
+  selectedRegion: string | null;
+  onRegionSelect: (region: string) => void;
+}
+
+export default function RegionList({ regions, selectedRegion, onRegionSelect }: RegionListProps) {
+  return (
+    <div className="p-5 h-full flex flex-col">
+      <h2 className="mb-5 text-2xl font-semibold text-gray-800">
+        Fishing Ban Regions
+      </h2>
+      <div className="flex-1 overflow-y-auto">
+        {regions.map((region) => (
+          <div
+            key={region.region}
+            className={`p-4 mb-3 border rounded-lg cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:translate-y-[-1px] hover:shadow-sm ${
+              selectedRegion === region.region 
+                ? 'bg-blue-50 border-blue-500' 
+                : 'border-gray-200'
+            }`}
+            onClick={() => onRegionSelect(region.region)}
+          >
+            <h3 className="mb-2 text-lg font-medium text-blue-700">
+              {region.region}
+            </h3>
+            {region.documents.length > 0 && (
+              <div className="text-sm text-gray-600">
+                <p className="mb-1">
+                  Documents: {region.documents.length}
+                </p>
+                <p className="flex items-center">
+                  Location data: 
+                  {region.documents.some(d => d.hasLocationData) ? (
+                    <span className="ml-1 text-green-600">Yes</span>
+                  ) : (
+                    <span className="ml-1 text-red-600">No</span>
+                  )}
+                </p>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+} 

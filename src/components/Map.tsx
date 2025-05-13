@@ -3,6 +3,13 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { parsedGeoJSON } from '../data/parsedGeoJSON';
 import RiverSearch from './RiverSearch';
+import type { FishingBanRegion } from '../types/regions';
+
+interface MapProps {
+  regions: FishingBanRegion[];
+  selectedRegion: string | null;
+  onRegionSelect: (region: string) => void;
+}
 
 const Map = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -117,13 +124,13 @@ const Map = () => {
   }, []);
 
   return (
-    <>
-      <RiverSearch map={map} />
+    <div className="relative h-full">
+      {/* <RiverSearch map={map} /> */}
       <div 
         ref={mapContainer} 
-        className='w-full relative h-screen'
+        className="w-full h-full"
       />
-    </>
+    </div>
   );
 };
 
