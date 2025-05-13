@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { sampleGeoJSON } from '../data/sampleGeoJSON';
+import { parsedGeoJSON } from '../data/parsedGeoJSON';
 
 const Map = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -13,9 +13,9 @@ const Map = () => {
 
     map.current = new maplibregl.Map({
       container: mapContainer.current,
-      style: 'https://tiles.stadiamaps.com/styles/osm_bright.json', // OSM demo style
-      center: [37.6173, 55.7558], // Moscow coordinates
-      zoom: 13
+      style: 'https://tiles.stadiamaps.com/styles/osm_bright.json',
+      center: [37.7333, 55.9833], // Пироговское водохранилище coordinates
+      zoom: 11
     });
 
     map.current.addControl(new maplibregl.NavigationControl());
@@ -37,7 +37,7 @@ const Map = () => {
           type: 'geojson',
           data: {
             type: 'FeatureCollection',
-            features: sampleGeoJSON.features.filter(f => f.geometry.type === 'Polygon')
+            features: parsedGeoJSON.features.filter(f => f.geometry.type === 'Polygon')
           }
         },
         paint: {
@@ -55,7 +55,7 @@ const Map = () => {
           type: 'geojson',
           data: {
             type: 'FeatureCollection',
-            features: sampleGeoJSON.features.filter(f => f.geometry.type === 'LineString')
+            features: parsedGeoJSON.features.filter(f => f.geometry.type === 'LineString')
           }
         },
         paint: {
@@ -72,7 +72,7 @@ const Map = () => {
           type: 'geojson',
           data: {
             type: 'FeatureCollection',
-            features: sampleGeoJSON.features.filter(f => f.geometry.type === 'Point')
+            features: parsedGeoJSON.features.filter(f => f.geometry.type === 'Point')
           }
         },
         paint: {
@@ -83,6 +83,7 @@ const Map = () => {
         }
       });
 
+      // Add hover effect
       map.current?.on("mousemove", ['restricted-areas', 'routes', 'markers'], (e) => {
         if (!map.current) return;
         if (e.features?.[0]) {
@@ -101,7 +102,8 @@ const Map = () => {
           popup.current?.remove();
         }
       });
-      map.current?.on("mouseleave", ['restricted-areas', 'routes', 'markers'], (e) => {
+
+      map.current?.on("mouseleave", ['restricted-areas', 'routes', 'markers'], () => {
         if (!map.current) return;
         map.current.getCanvas().style.cursor = '';
         popup.current?.remove();
