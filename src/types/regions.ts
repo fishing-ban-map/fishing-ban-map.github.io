@@ -19,29 +19,16 @@ export interface Table {
 }
 
 export interface Document {
-  filename: string;
-  extractedAt: string;
-  content: {
-    text: string;
-    html: string;
-    tables: Table[];
-  };
-  title?: string;
-  url?: string;
-  filePath?: string;
-  contentPath: string;
-  hasContent: boolean;
-  extractionMessages?: Array<{
-    type: string;
-    message: string;
-  }>;
+  title: string;
+  url: string;
+  filePath: string;
+  content: string;
 }
 
 export interface FishingBanRegion {
   title: string;
   url: string;
   region: string;
-  content: string;
   contentHtml: string;
   documents: Document[];
 } 

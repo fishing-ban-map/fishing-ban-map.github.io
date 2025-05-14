@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { FishingBanRegion, Document as DocumentType } from '../types/regions';
 import Document from './Document';
-import { loadDocumentContent } from '../utils/documents';
 
 interface RegionProps {
   region: FishingBanRegion;
@@ -10,23 +9,10 @@ interface RegionProps {
 
 export default function Region({ region, onBack }: RegionProps) {
   const [selectedDocument, setSelectedDocument] = useState<DocumentType | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleDocumentClick = async (index: number) => {
-    const docMetadata = region.documents[index];
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const documentContent = await loadDocumentContent(docMetadata.contentPath);
-      setSelectedDocument(documentContent);
-    } catch (err) {
-      setError('Failed to load document content. Please try again.');
-      console.error('Error loading document:', err);
-    } finally {
-      setIsLoading(false);
-    }
+    setSelectedDocument(region.documents[index]);
   };
 
   const handleDocumentBack = () => {
@@ -101,10 +87,7 @@ export default function Region({ region, onBack }: RegionProps) {
               >
                 <button
                   onClick={() => handleDocumentClick(index)}
-                  disabled={isLoading}
-                  className={`flex items-center text-gray-700 hover:text-blue-600 w-full text-left ${
-                    isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
+                  className="flex items-center text-gray-700 hover:text-blue-600 w-full text-left"
                 >
                   <svg 
                     className="w-5 h-5 mr-2 flex-shrink-0" 
@@ -119,7 +102,7 @@ export default function Region({ region, onBack }: RegionProps) {
                       d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" 
                     />
                   </svg>
-                  <span className="hover:underline">{doc.filename}</span>
+                  <span className="hover:underline">{doc.title}</span>
                 </button>
               </li>
             ))}

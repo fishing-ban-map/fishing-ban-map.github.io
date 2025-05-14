@@ -166,16 +166,18 @@ function parseCoordinate(coordText) {
   });
 }
 
+const pointPattern = /(?:\d+\.\s*)?(\d+°\d+'[\d,]+"\s*с\.ш\.?\s*\d+°\d+'[\d,]+"\s*в\.д\.?)/g;
+
 // Function to parse coordinate points list
 function parseCoordinatePoints(text) {
   // Remove extra spaces and normalize line endings
   text = text.replace(/\s+/g, ' ').trim();
+
+  console.log(text)
   
-  // Find all coordinate pairs using lookahead to handle points without spaces
-  const pointPattern = /\d+\.\s*(\d+°\d+'[\d,]+"\s*с\.ш\.?\s*\d+°\d+'[\d,]+"\s*в\.д\.?)(?=\d+\.|$)/g;
   const points = [...text.matchAll(pointPattern)]
     .map(match => match[1])
-    .filter(p => p && p.trim().length > 0);
+  console.log(points)
 
   return points.map((point, index) => {
     const coords = parseCoordinate(point);
@@ -196,7 +198,7 @@ function containsCoordinatePoints(text) {
   // - Numbers with degree symbols
   // - с.ш. (latitude) and в.д. (longitude) markers
   // - Numbered points
-  return /\d+\.\s*\d+°\d+'[\d,]+"\s*с\.ш\..*\d+°\d+'[\d,]+"\s*в\.д\./.test(text);
+  return pointPattern.test(text);
 }
 
 // Function to parse table from HTML content
@@ -227,18 +229,7 @@ function parseLocationTable(html) {
       const rowData = [];
       $(row).find('td').each((cellIndex, cell) => {
         const cellText = $(cell).text().trim();
-        
-        // Check if the cell contains coordinate points
-        if (containsCoordinatePoints(cellText)) {
-          const points = parseCoordinatePoints(cellText);
-          rowData.push({
-            type: 'coordinates',
-            original: cellText,
-            points: points
-          });
-        } else {
-          rowData.push(cellText);
-        }
+        rowData.push(cellText);
       });
       
       if (rowData.length > 0) {
@@ -258,26 +249,11 @@ function parseLocationTable(html) {
 // Function to extract content from a Word document
 async function extractDocumentContent(filePath) {
   try {
-    const result = await mammoth.extractRawText({ path: filePath });
     const htmlResult = await mammoth.convertToHtml({ path: filePath });
-    
-    // Parse tables from HTML content
-    const tables = parseLocationTable(htmlResult.value);
-    
-    return {
-      text: result.value,
-      html: htmlResult.value,
-      tables: tables,
-      messages: [...result.messages, ...htmlResult.messages]
-    };
+    return htmlResult.value
   } catch (error) {
     console.error(`Error extracting content from ${filePath}:`, error.message);
-    return {
-      text: '',
-      html: '',
-      tables: [],
-      messages: [{ type: 'error', message: error.message }]
-    };
+    return error.message
   }
 }
 
@@ -304,8 +280,7 @@ async function downloadDocument(url, filename, documentsDir) {
     return {
       filePath: path.relative(dataDir, filePath),
       contentPath: path.relative(dataDir, contentJsonPath),
-      hasContent: extractedContent.text.length > 0,
-      extractionMessages: extractedContent.messages
+      content: extractedContent,
     };
   } catch (error) {
     console.error(`Error downloading document ${filename}:`, error.message);
@@ -367,9 +342,7 @@ async function parseRegionPage(html, baseUrl, documentsDir) {
         title: originalName,
         url: docUrl,
         filePath: docResult.filePath,
-        contentPath: docResult.contentPath,
-        hasContent: docResult.hasContent,
-        extractionMessages: docResult.extractionMessages
+        content: docResult.content
       });
       
       // Add a small delay between downloads
@@ -378,7 +351,6 @@ async function parseRegionPage(html, baseUrl, documentsDir) {
   }
 
   return {
-    content: textContent,
     contentHtml: contentHtml,
     documents
   };
@@ -453,7 +425,6 @@ async function fetchAllData() {
         const parsedContent = await parseRegionPage(regionHtml, region.url, paths.documentsDir);
         
         // Add content and documents to region object
-        region.content = parsedContent.content;
         region.contentHtml = parsedContent.contentHtml;
         region.documents = parsedContent.documents;
 

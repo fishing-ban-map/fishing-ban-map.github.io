@@ -16,9 +16,7 @@ function DocumentRow({ row, isExpanded, onToggle }: RowProps) {
   const tableRow = row[1] as TableRow;
   const hasPoints = row.length > 1 && typeof row[1] === 'object' && 'points' in tableRow && tableRow.points && tableRow.points.length > 0;
   
-  const displayText = typeof row[1] === 'string' 
-    ? row[1] 
-    : (tableRow && 'original' in tableRow ? tableRow.original || '' : '');
+  const displayText = row.map(it => typeof it === 'string' ? it : it.original).join(' ');
 
   return (
     <div className="border-b border-gray-200 last:border-0">
@@ -104,33 +102,15 @@ export default function Document({ document, onBack }: DocumentViewProps) {
 
       {/* Document title */}
       <h1 className="text-2xl font-bold text-gray-900 mb-4">
-        {document.filename}
+        {document.title}
       </h1>
 
       {/* Content section */}
       <div className="bg-white rounded-lg shadow mb-4 flex-grow overflow-y-auto">
-        {document.content?.html && (
-          <div 
-            className="p-4 prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: document.content.html }}
-          />
-        )}
-        <div className="divide-y divide-gray-200">
-          {document.content?.tables?.[0]?.rows?.map((row, index) => (
-            <DocumentRow
-              key={index}
-              row={row}
-              isExpanded={expandedRows.has(index)}
-              onToggle={() => toggleRow(index)}
-            />
-          ))}
-          {(!document.content?.tables?.[0]?.rows || document.content.tables[0].rows.length === 0) && 
-           !document.content?.html && (
-            <div className="p-4 text-gray-500">
-              No content available
-            </div>
-          )}
-        </div>
+        <div 
+          className="p-4 prose prose-sm max-w-none"
+          dangerouslySetInnerHTML={{ __html: document.content }}
+        />
       </div>
     </div>
   );
