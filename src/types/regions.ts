@@ -1,3 +1,4 @@
+
 export interface Coordinate {
   lat: number;
   lon: number;
@@ -6,16 +7,12 @@ export interface Coordinate {
 }
 
 export interface TableRow {
-  type?: string;
-  original?: string;
+  header: string;
   points?: Coordinate[];
-  text?: string;
 }
 
 export interface Table {
-  index: number;
-  headers: string[];
-  rows: (string | TableRow)[][];
+  rows: TableRow[];
 }
 
 export interface Document {
@@ -23,6 +20,9 @@ export interface Document {
   url: string;
   filePath: string;
   content: string;
+  header?: string;
+  rows: TableRow[];
+  region?: FishingBanRegion;
 }
 
 export interface FishingBanRegion {

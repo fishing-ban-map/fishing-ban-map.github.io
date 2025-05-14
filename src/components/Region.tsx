@@ -5,27 +5,33 @@ import Document from './Document';
 interface RegionProps {
   region: FishingBanRegion;
   onBack: () => void;
+  openedDocument: DocumentType | null;
+  setOpenedDocument: (document: DocumentType | null) => void;
+  map: maplibregl.Map | null;
+  selectedRow: number | null;
+  setSelectedRow: (row: number | null) => void;
 }
 
-export default function Region({ region, onBack }: RegionProps) {
-  const [selectedDocument, setSelectedDocument] = useState<DocumentType | null>(null);
+export default function Region({ region, onBack, openedDocument, setOpenedDocument, map, selectedRow, setSelectedRow }: RegionProps) {
   const [error, setError] = useState<string | null>(null);
-
   const handleDocumentClick = async (index: number) => {
-    setSelectedDocument(region.documents[index]);
+    setOpenedDocument(region.documents[index]);
   };
 
   const handleDocumentBack = () => {
-    setSelectedDocument(null);
+    setOpenedDocument(null);
     setError(null);
   };
 
   // If a document is selected, show the Document component
-  if (selectedDocument) {
+  if (openedDocument) {
     return (
       <Document 
-        document={selectedDocument}
+        document={openedDocument}
         onBack={handleDocumentBack}
+        map={map}
+        selectedRow={selectedRow}
+        setSelectedRow={setSelectedRow}
       />
     );
   }
@@ -51,7 +57,7 @@ export default function Region({ region, onBack }: RegionProps) {
               d="M15 19l-7-7 7-7" 
             />
           </svg>
-          Back to list
+          Назад
         </button>
       </div>
 
@@ -72,7 +78,7 @@ export default function Region({ region, onBack }: RegionProps) {
       {region.documents.length > 0 && (
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold text-gray-900 mb-3">
-            Documents
+            Участки
           </h2>
           {error && (
             <div className="mb-3 p-3 bg-red-50 text-red-700 rounded-md">
@@ -83,11 +89,11 @@ export default function Region({ region, onBack }: RegionProps) {
             {region.documents.map((doc, index) => (
               <li 
                 key={index}
-                className="flex items-center"
+                className="flex items-center p-2 mb-2 border rounded-lg cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:translate-y-[-1px] hover:shadow-sm"
               >
                 <button
                   onClick={() => handleDocumentClick(index)}
-                  className="flex items-center text-gray-700 hover:text-blue-600 w-full text-left"
+                  className="flex items-center text-gray-700  w-full text-left hover:cursor-pointer"
                 >
                   <svg 
                     className="w-5 h-5 mr-2 flex-shrink-0" 
@@ -102,7 +108,7 @@ export default function Region({ region, onBack }: RegionProps) {
                       d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" 
                     />
                   </svg>
-                  <span className="hover:underline">{doc.title}</span>
+                  <span>{doc.title}</span>
                 </button>
               </li>
             ))}

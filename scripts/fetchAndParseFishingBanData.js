@@ -248,13 +248,8 @@ function parseLocationTable(html) {
 
 // Function to extract content from a Word document
 async function extractDocumentContent(filePath) {
-  try {
-    const htmlResult = await mammoth.convertToHtml({ path: filePath });
-    return htmlResult.value
-  } catch (error) {
-    console.error(`Error extracting content from ${filePath}:`, error.message);
-    return error.message
-  }
+  const htmlResult = await mammoth.convertToHtml({ path: filePath });
+  return htmlResult.value
 }
 
 // Function to download a document and extract its content
