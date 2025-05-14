@@ -1,4 +1,7 @@
-import type { FishingBanRegion } from '../types/regions';
+import { useState } from 'react';
+import type { FishingBanRegion, Document as DocumentType } from '../types/regions';
+import Document from './Document';
+import { loadDocumentContent } from '../utils/documents';
 
 interface RegionProps {
   region: FishingBanRegion;
@@ -6,6 +9,41 @@ interface RegionProps {
 }
 
 export default function Region({ region, onBack }: RegionProps) {
+  const [selectedDocument, setSelectedDocument] = useState<DocumentType | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleDocumentClick = async (index: number) => {
+    const docMetadata = region.documents[index];
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const documentContent = await loadDocumentContent(docMetadata.contentPath);
+      setSelectedDocument(documentContent);
+    } catch (err) {
+      setError('Failed to load document content. Please try again.');
+      console.error('Error loading document:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDocumentBack = () => {
+    setSelectedDocument(null);
+    setError(null);
+  };
+
+  // If a document is selected, show the Document component
+  if (selectedDocument) {
+    return (
+      <Document 
+        document={selectedDocument}
+        onBack={handleDocumentBack}
+      />
+    );
+  }
+
   return (
     <div className="p-5 h-full flex flex-col">
       {/* Header with back button */}
@@ -50,33 +88,39 @@ export default function Region({ region, onBack }: RegionProps) {
           <h2 className="text-lg font-semibold text-gray-900 mb-3">
             Documents
           </h2>
+          {error && (
+            <div className="mb-3 p-3 bg-red-50 text-red-700 rounded-md">
+              {error}
+            </div>
+          )}
           <ul className="space-y-2">
             {region.documents.map((doc, index) => (
               <li 
                 key={index}
-                className="flex items-center text-gray-700 hover:text-blue-600"
+                className="flex items-center"
               >
-                <svg 
-                  className="w-5 h-5 mr-2" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
+                <button
+                  onClick={() => handleDocumentClick(index)}
+                  disabled={isLoading}
+                  className={`flex items-center text-gray-700 hover:text-blue-600 w-full text-left ${
+                    isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" 
-                  />
-                </svg>
-                <a 
-                  href={doc.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:underline"
-                >
-                  {doc.title}
-                </a>
+                  <svg 
+                    className="w-5 h-5 mr-2 flex-shrink-0" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" 
+                    />
+                  </svg>
+                  <span className="hover:underline">{doc.filename}</span>
+                </button>
               </li>
             ))}
           </ul>
