@@ -5,7 +5,36 @@ import { Layer, Map as MapLibre, Source, Popup } from 'react-map-gl/maplibre';
 import MaplibreGeocoder from '@maplibre/maplibre-gl-geocoder';
 import '@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css';
 import unkinkPolygon from '@turf/unkink-polygon';
-import type { Feature, FeatureCollection, Polygon } from 'geojson';
+import cleanCoords from '@turf/clean-coords';
+import type { Feature, FeatureCollection, Polygon, Position } from 'geojson';
+
+// Helper function to add a small random offset to coordinates
+function fuzzCoordinate(coord: Position, index: number): Position {
+  // Add a tiny random offset (about 1-2 centimeters)
+  const fuzzFactor = 0.0000001 * (index + 1); // Approximately 1cm at the equator
+  return [
+    coord[0] + fuzzFactor,
+    coord[1] + fuzzFactor
+  ];
+}
+
+// Helper function to remove duplicate vertices with fuzzing
+function removeDuplicatesWithFuzzing(coordinates: Position[][]): Position[][] {
+  return coordinates.map(ring => {
+    const seen = new Set<string>();
+    return ring.map((coord, index) => {
+      const key = `${coord[0]},${coord[1]}`;
+      if (seen.has(key)) {
+        // If we've seen this coordinate before, fuzz it
+        const fuzzed = fuzzCoordinate(coord, index);
+        seen.add(`${fuzzed[0]},${fuzzed[1]}`);
+        return fuzzed;
+      }
+      seen.add(key);
+      return coord;
+    });
+  });
+}
 
 interface MapProps {
   geoJson: GeoJSON.FeatureCollection;
@@ -30,7 +59,17 @@ const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
     );
     const unkinkedFeatures = polygonFeatures.flatMap(feature => {
       try {
-        const unkinked = unkinkPolygon(feature);
+        // First clean the coordinates and then fuzz any remaining duplicates
+        const cleanedFeature = cleanCoords(feature) as Feature<Polygon>;
+        const fuzzedFeature: Feature<Polygon> = {
+          ...cleanedFeature,
+          geometry: {
+            ...cleanedFeature.geometry,
+            coordinates: removeDuplicatesWithFuzzing(cleanedFeature.geometry.coordinates)
+          }
+        };
+
+        const unkinked = unkinkPolygon(fuzzedFeature);
         // Copy the original properties to all resulting features
         return unkinked.features.map((f) => {
           if (f.geometry.type !== 'Polygon') {
@@ -46,7 +85,7 @@ const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
           } as Feature<Polygon>;
         });
       } catch (e) {
-        console.log(feature)
+        console.log('Error in feature:', feature);
         console.error('Error unkinking polygon:', e);
         return [feature]; // Return original feature if unkinking fails
       }

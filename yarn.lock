@@ -796,6 +796,16 @@
     point-in-polygon-hao "^1.1.0"
     tslib "^2.8.1"
 
+"@turf/clean-coords@^7.2.0":
+  version "7.2.0"
+  resolved "https://npm.raa-st.com/@turf/clean-coords/-/clean-coords-7.2.0.tgz#39f85be033bc33601da2e95948e6c184af34610f"
+  integrity sha512-+5+J1+D7wW7O/RDXn46IfCHuX1gIV1pIAQNSA7lcDbr3HQITZj334C4mOGZLEcGbsiXtlHWZiBtm785Vg8i+QQ==
+  dependencies:
+    "@turf/helpers" "^7.2.0"
+    "@turf/invariant" "^7.2.0"
+    "@types/geojson" "^7946.0.10"
+    tslib "^2.8.1"
+
 "@turf/helpers@^7.2.0":
   version "7.2.0"
   resolved "https://npm.raa-st.com/@turf/helpers/-/helpers-7.2.0.tgz#5771308108c98d608eb8e7f16dcd0eb3fb8a3417"
