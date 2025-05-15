@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useMemo } from 'react';
-import RegionList from './components/RegionList'; 
+import RegionList from './components/RegionList';
 import Map from './components/Map';
 import type { FishingBanRegion, Table, Document } from './types/regions';
 import * as cheerio from 'cheerio';
@@ -14,7 +14,7 @@ function parseCoordinate(coordText: string) {
   // Match pattern: degrees°minutes'seconds,decimals" direction
   const pattern = /(\d+)°(\d+)['"](\d+,?\d*)"\s*(с\.ш\.?|в\.д\.?)/g;
   const matches = [...coordText.matchAll(pattern)];
-  
+
   if (matches.length === 0) return null;
 
   return matches.map(match => {
@@ -44,7 +44,8 @@ function parseCoordinatePoints(text: string) {
     const coords = parseCoordinate(point);
     if (!coords || coords.length !== 2) {
       console.error('Invalid coordinate', point)
-      throw new Error('Invalid coordinate')}
+      throw new Error('Invalid coordinate')
+    }
 
     return {
       index: index + 1,
@@ -59,12 +60,12 @@ function parseLocationTable(html: string) {
   const $ = cheerio.load(html);
   const tables: Table[] = [];
 
-  const title = $('body').contents().filter(function() {
+  const title = $('body').contents().filter(function () {
     return this.nodeType === 1 && $(this).is('p') && $(this).nextAll('table').length > 0;
-  }).map(function() {
+  }).map(function () {
     return $(this).text().trim();
   }).get().join(' ');
-  
+
   $('table').each((tableIndex, tableElement) => {
     const table: Table = {
       rows: [],
@@ -77,7 +78,7 @@ function parseLocationTable(html: string) {
         const cellText = $(cell).text().trim();
         rowData.push(cellText);
       });
-      
+
       if (rowData.length > 0) {
         table.rows.push({
           header: rowData.join(' '),
@@ -114,6 +115,7 @@ function App() {
   });
   const [map, setMap] = useState<maplibregl.Map | null>(null);
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
+  const [showWarning, setShowWarning] = useState(true);
   useEffect(() => {
     // Load regions data
     fetch('/fishing-ban-regions.json')
@@ -186,7 +188,7 @@ function App() {
             type: 'Feature',
             geometry: {
               type: 'Point',
-              coordinates: [row.points[0].lon, row.points[0].lat] 
+              coordinates: [row.points[0].lon, row.points[0].lat]
             },
             properties: {
               color: '#ff0000',
@@ -215,27 +217,44 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden">
-      <div className="w-1/3 h-full border-r border-gray-200 overflow-y-auto bg-white">
-      
-        <RegionList 
-          regions={regions}
-          selectedRegion={selectedRegion}
-          onRegionSelect={setSelectedRegion}
-          selectedDocuments={selectedDocuments}
-          setSelectedDocuments={setSelectedDocuments}
-          openedDocument={openedDocument}
-          setOpenedDocument={setOpenedDocument}
-          map={map}
-          selectedRow={selectedRow}
-          setSelectedRow={setSelectedRow}
-        />
+      <div className="flex flex-col h-screen w-screen overflow-hidden">
+        {showWarning && (
+          <div className="p-1 bg-yellow-50 border-b border-yellow-200 text-sm flex items-center justify-center relative">
+            <span>Внимание!
+              Данная карта использует информацию об участках с официального сайта <a href="https://fish.gov.ru" target="_blank" rel="noopener noreferrer">fish.gov.ru</a>.
+              Актуальность и точность данных может устареть в любой момент.
+              Для получения достоверной информации необходимо использовать официальные документы Росрыболовства или обращаться в его территориальные органы.</span>
+            <button 
+              onClick={() => setShowWarning(false)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        <div className="flex flex-1 overflow-hidden">
+          <div className="w-1/3 h-full border-r border-gray-200 overflow-y-auto bg-white">
+            <RegionList
+              regions={regions}
+              selectedRegion={selectedRegion}
+              onRegionSelect={setSelectedRegion}
+              selectedDocuments={selectedDocuments}
+              setSelectedDocuments={setSelectedDocuments}
+              openedDocument={openedDocument}
+              setOpenedDocument={setOpenedDocument}
+              map={map}
+              selectedRow={selectedRow}
+              setSelectedRow={setSelectedRow}
+            />
 
-      </div>
-      <div className="flex-1 h-full bg-gray-50">
-        <Map geoJson={features} onFeatureClick={handleFeatureClick} viewState={viewState} setViewState={setViewState} onMapLoaded={(map) => setMap(map)}/>
+          </div>
+          <div className="flex-1 h-full bg-gray-50">
+            <Map geoJson={features} onFeatureClick={handleFeatureClick} viewState={viewState} setViewState={setViewState} onMapLoaded={(map) => setMap(map)} />
+          </div>
+        </div>
       </div>
     </div>
-  );
+      );
 }
 
-export default App;
+      export default App;
