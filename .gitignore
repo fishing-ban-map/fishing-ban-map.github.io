@@ -10,8 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-data/regions
-data/fishing-ban-data.html
+data
 *.local
 
 # Editor directories and files

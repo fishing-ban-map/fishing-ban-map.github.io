@@ -463,7 +463,7 @@ async function fetchAllData() {
     }
 
     // Save the complete data
-    const jsonOutputFile = path.join(dataDir, 'fishing-ban-regions.json');
+    const jsonOutputFile = path.join(__dirname, '..', 'public', 'fishing-ban-regions.json');
     saveToFile(jsonOutputFile, JSON.stringify({
       lastUpdated: new Date().toISOString(),
       sourceUrl: url,

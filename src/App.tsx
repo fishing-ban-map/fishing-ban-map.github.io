@@ -116,7 +116,7 @@ function App() {
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
   useEffect(() => {
     // Load regions data
-    fetch('/data/fishing-ban-regions.json')
+    fetch('/fishing-ban-regions.json')
       .then(response => response.json() as Promise<{ regions: FishingBanRegion[] }>)
       .then(data => {
         const documentsToSelect: Document[] = []
