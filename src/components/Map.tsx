@@ -6,7 +6,12 @@ import MaplibreGeocoder from '@maplibre/maplibre-gl-geocoder';
 import '@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css';
 import unkinkPolygon from '@turf/unkink-polygon';
 import cleanCoords from '@turf/clean-coords';
-import type { Feature, FeatureCollection, Polygon, Position } from 'geojson';
+import distance from '@turf/distance';
+import { point } from '@turf/helpers';
+import type { Feature, FeatureCollection, LineString, Point, Polygon, Position } from 'geojson';
+
+// Constants
+const MAX_DISTANCE_KM = 10; // Maximum distance between points in kilometers
 
 // Helper function to add a small random offset to coordinates
 function fuzzCoordinate(coord: Position, index: number): Position {
@@ -36,6 +41,82 @@ function removeDuplicatesWithFuzzing(coordinates: Position[][]): Position[][] {
   });
 }
 
+// Helper function to check if two points are too far apart
+function distanceBetweenPoints(coord1: Position, coord2: Position): number {
+  const point1 = point([coord1[0], coord1[1]]);
+  const point2 = point([coord2[0], coord2[1]]);
+  return distance(point1, point2);
+}
+
+// Helper function to split polygon into parts if points are too far apart
+function splitPolygonIfNeeded(feature: Feature<Polygon>): Feature<Polygon | LineString | Point>[] {
+  const coordinates = feature.geometry.coordinates[0]; // Only handle outer ring for now
+  const result: Feature<Polygon | LineString | Point>[] = [];
+  let currentPart: Position[] = [coordinates[0]];
+
+  const addCurrentPart = () => {
+    if (currentPart.length === 1) {
+      result.push({
+        type: 'Feature',
+        properties: { ...feature.properties },
+        geometry: {
+          type: 'Point',
+          coordinates: currentPart[0]
+        }
+      });
+    } else if (currentPart.length === 2) {
+      result.push({
+        type: 'Feature',
+        properties: { ...feature.properties },
+        geometry: {
+          type: 'LineString',
+          coordinates: [currentPart[0], currentPart[1]]
+        }
+      });
+    } else {
+      // Close the current polygon part
+      currentPart.push(currentPart[0]); // Add first point to close the ring
+      // Create a new feature for this part
+      result.push({
+        type: 'Feature',
+        properties: { ...feature.properties },
+        geometry: {
+          type: 'Polygon',
+          coordinates: [currentPart]
+        }
+      });
+    }
+  }
+
+  let maxDistance = 0
+
+  for (let i = 1; i < coordinates.length; i++) {
+    const prevPoint = coordinates[i - 1];
+    const currentPoint = coordinates[i];
+
+    const distance = distanceBetweenPoints(prevPoint, currentPoint)
+
+    if (distance > MAX_DISTANCE_KM) {
+      if (distance > maxDistance) {
+        maxDistance = distance
+      }
+      addCurrentPart()
+      // Start a new part
+      currentPart = [currentPoint];
+    } else {
+      currentPart.push(currentPoint);
+    }
+  }
+
+  addCurrentPart()
+
+  if (result.length > 1) {
+    console.error(`Расстояние между точками для участка ${feature.properties?.name} больше ${MAX_DISTANCE_KM} км: ${maxDistance}`, feature)
+  }
+
+  return result.length > 1 ? result : [feature];
+}
+
 interface MapProps {
   geoJson: GeoJSON.FeatureCollection;
   onFeatureClick: (feature: GeoJSON.Feature) => void;
@@ -53,11 +134,14 @@ const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
   const [featureUnderMouse, setFeatureUnderMouse] = useState<{ feature: GeoJSON.Feature, coordinates: maplibregl.LngLat } | null>(null);
 
   // Process polygons to fix self-intersections
-  const processedPolygons = useMemo(() => {
+  const processedGeoJson = useMemo(() => {
     const polygonFeatures = geoJson.features.filter((f): f is Feature<Polygon> =>
       f.geometry.type === 'Polygon'
     );
-    const unkinkedFeatures = polygonFeatures.flatMap(feature => {
+    const notPolygons = geoJson.features.filter((f) =>
+      f.geometry.type !== 'Polygon'
+    );
+    const processedFeatures = polygonFeatures.flatMap(feature => {
       try {
         // First clean the coordinates and then fuzz any remaining duplicates
         const cleanedFeature = cleanCoords(feature) as Feature<Polygon>;
@@ -69,31 +153,38 @@ const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
           }
         };
 
-        const unkinked = unkinkPolygon(fuzzedFeature);
-        // Copy the original properties to all resulting features
-        return unkinked.features.map((f) => {
-          if (f.geometry.type !== 'Polygon') {
-            console.error('Unexpected geometry type after unkinking:', f.geometry.type);
-            return feature;
-          }
-          return {
-            ...f,
-            properties: {
-              ...feature.properties,
-              originalId: feature.properties?.documentIndex // Keep track of original feature
+        // Split polygons if points are too far apart
+        const splitFeatures = splitPolygonIfNeeded(fuzzedFeature);
+        const splitPolygons = splitFeatures.filter(f => f.geometry.type === 'Polygon') as Feature<Polygon>[]
+
+        // Then unkink each split part
+        return [...splitPolygons.flatMap(splitFeature => {
+          const unkinked = unkinkPolygon(splitFeature);
+          // Copy the original properties to all resulting features
+          return unkinked.features.map((f) => {
+            if (f.geometry.type !== 'Polygon') {
+              console.error('Unexpected geometry type after unkinking:', f.geometry.type);
+              return splitFeature;
             }
-          } as Feature<Polygon>;
-        });
+            return {
+              ...f,
+              properties: {
+                ...feature.properties,
+                originalId: feature.properties?.documentIndex // Keep track of original feature
+              }
+            } as Feature<Polygon>;
+          });
+        }), ...splitFeatures.filter(f => f.geometry.type !== 'Polygon')];
       } catch (e) {
-        console.error('Error unkinking polygon:', e);
-        return [feature]; // Return original feature if unkinking fails
+        console.error('Error processing polygon:', e);
+        return [feature]; // Return original feature if processing fails
       }
     });
 
     return {
       type: 'FeatureCollection',
-      features: unkinkedFeatures
-    } as FeatureCollection<Polygon>;
+      features: [...processedFeatures, ...notPolygons]
+    } as FeatureCollection<Polygon | LineString | Point>;
   }, [geoJson]);
 
   return (
@@ -188,42 +279,47 @@ const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
           onMapLoaded(map);
         }}
       >
-        <Source id="polygons" type="geojson" data={processedPolygons}>
+        <Source id="polygons" type="geojson" data={{
+          type: 'FeatureCollection',
+          features: processedGeoJson.features.filter(f => f.geometry.type === 'Polygon')
+        }}>
           <Layer {...{
             id: 'polygons',
             type: 'fill',
             paint: {
-              'fill-color': ['get', 'fillColor'],
-              'fill-opacity': ['get', 'fillOpacity'],
-              'fill-outline-color': ['get', 'strokeColor']
+              'fill-color': '#ff000077',
+              'fill-opacity': 1,
+              'fill-outline-color': '#ff0000'
             }
           }} />
         </Source>
         <Source id="lines" type="geojson" data={{
           type: 'FeatureCollection',
-          features: geoJson.features.filter(f => f.geometry.type === 'LineString')
+          features: processedGeoJson.features.filter(f => f.geometry.type === 'LineString')
         }}>
           <Layer {...{
             id: 'lines',
             type: 'line',
             paint: {
-              'line-color': ['get', 'color'],
-              'line-width': ['get', 'width']
+              'line-color': '#ff0000',
+              'line-width': 2
             }
           }} />
         </Source>
         <Source id="points" type="geojson" data={{
           type: 'FeatureCollection',
-          features: geoJson.features.filter(f => f.geometry.type === 'Point')
+          features: processedGeoJson.features.filter(f => f.geometry.type === 'Point')
         }}>
           <Layer {...{
             id: 'points',
             type: 'circle',
             paint: {
-              'circle-radius': ['get', 'radius'],
-              'circle-color': ['get', 'color'],
-              'circle-stroke-width': ['get', 'strokeWidth'],
-              'circle-stroke-color': ['get', 'strokeColor']
+              'circle-radius': 3,
+              'circle-color': '#ff0000',
+              'circle-opacity': 0.3,
+              'circle-stroke-width': 1,
+              'circle-stroke-color': '#ff0000',
+              'circle-stroke-opacity': 1
             }
           }} />
         </Source>

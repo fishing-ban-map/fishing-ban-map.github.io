@@ -193,7 +193,7 @@ function App() {
             },
             properties: {
               color: '#ff0000',
-              radius: 5,
+              radius: 1.5,
               strokeColor: '#ff0000',
               strokeWidth: 2,
               name: row.header,
