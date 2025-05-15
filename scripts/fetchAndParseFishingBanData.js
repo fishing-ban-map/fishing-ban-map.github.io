@@ -88,7 +88,7 @@ function createSafeFilename(name) {
 function parsePoints(text) {
   // Remove extra spaces and normalize line endings
   text = text.replace(/\s+/g, ' ').trim();
-  
+
   // If text is empty, return empty array
   if (!text) return [];
 
@@ -149,7 +149,7 @@ function parseCoordinate(coordText) {
   // Match pattern: degrees°minutes'seconds,decimals" direction
   const pattern = /(\d+)°(\d+)'(\d+,\d+)"\s*(с\.ш\.|в\.д\.)/g;
   const matches = [...coordText.matchAll(pattern)];
-  
+
   if (matches.length === 0) return null;
 
   return matches.map(match => {
@@ -174,7 +174,7 @@ function parseCoordinatePoints(text) {
   text = text.replace(/\s+/g, ' ').trim();
 
   console.log(text)
-  
+
   const points = [...text.matchAll(pointPattern)]
     .map(match => match[1])
   console.log(points)
@@ -205,7 +205,7 @@ function containsCoordinatePoints(text) {
 function parseLocationTable(html) {
   const $ = cheerio.load(html);
   const tables = [];
-  
+
   $('table').each((tableIndex, tableElement) => {
     const table = {
       index: tableIndex,
@@ -231,7 +231,7 @@ function parseLocationTable(html) {
         const cellText = $(cell).text().trim();
         rowData.push(cellText);
       });
-      
+
       if (rowData.length > 0) {
         table.rows.push(rowData);
       }
@@ -263,7 +263,7 @@ async function downloadDocument(url, filename, documentsDir) {
     // Extract content from the document
     console.log(`Extracting content from: ${filename}`);
     const extractedContent = await extractDocumentContent(filePath);
-    
+
     // Save extracted content as JSON
     const contentJsonPath = path.join(documentsDir, `${path.parse(filename).name}.json`);
     saveToFile(contentJsonPath, JSON.stringify({
@@ -286,10 +286,10 @@ async function downloadDocument(url, filename, documentsDir) {
 // Function to parse region page and extract content
 async function parseRegionPage(html, baseUrl, documentsDir) {
   const $ = cheerio.load(html);
-  
+
   // Find the first card with the main content
   const $firstCard = $('.col.card').first();
-  
+
   if (!$firstCard.length) {
     console.log('Warning: No card found in the page');
     return { content: '', contentHtml: '', documents: [] };
@@ -318,28 +318,32 @@ async function parseRegionPage(html, baseUrl, documentsDir) {
   // Find all document links within the first card
   const documents = [];
   const documentLinks = $firstCard.find('a[href*=".doc"]'); // Match both .doc and .docx
-  
+
   for (const link of documentLinks) {
     const $link = $(link);
     const href = $link.attr('href');
     if (!href || (!href.endsWith('.doc') && !href.endsWith('.docx'))) continue;
-    
+
     const docUrl = new URL(href, baseUrl).toString();
     const originalName = $link.text().trim() || path.basename(docUrl);
     const extension = href.endsWith('.docx') ? '.docx' : '.doc';
     const safeFilename = `${createSafeFilename(originalName)}${extension}`;
-    
+
     // Download the document and extract content
     const docResult = await downloadDocument(docUrl, safeFilename, documentsDir);
-    
+
     if (docResult) {
-      documents.push({
-        title: originalName,
-        url: docUrl,
-        filePath: docResult.filePath,
-        content: docResult.content
-      });
-      
+      if (documents.find(it => it.url === docUrl)) {
+        console.log(`Skipping duplicate document: ${docUrl}`);
+      } else {
+        documents.push({
+          title: originalName,
+          url: docUrl,
+          filePath: docResult.filePath,
+          content: docResult.content
+        });
+      }
+
       // Add a small delay between downloads
       await new Promise(resolve => setTimeout(resolve, 500));
     }
@@ -355,24 +359,24 @@ async function parseRegionPage(html, baseUrl, documentsDir) {
 function parseMainPage(html) {
   const $ = cheerio.load(html);
   const regions = [];
-  
+
   // The section title we're looking for
   const sectionTitle = 'Об ограничениях в период нереста рыбы';
-  
+
   // Find all links under sections that match our title
   $('h1, h2, h3, h4').each((_, element) => {
     const $element = $(element);
     if ($element.text().trim() === sectionTitle) {
       // Get the next section that contains links
       const $section = $element.next();
-      
+
       // Find all links in this section
       $section.find('a').each((_, link) => {
         const $link = $(link);
         const title = $link.text().trim();
         // Extract region name from the title (remove the number in parentheses)
         const regionName = title.replace(/\s*\(\d+\)\s*$/, '').trim();
-        
+
         const region = {
           title: title,
           url: new URL($link.attr('href'), 'https://moktu.fish.gov.ru').toString(),
@@ -392,7 +396,7 @@ async function fetchAllData() {
     // Fetch main page
     console.log('Fetching main page...');
     const mainPageHtml = await fetchUrl(url);
-    
+
     // Save main page HTML
     const mainPageFile = path.join(dataDir, 'fishing-ban-data.html');
     saveToFile(mainPageFile, mainPageHtml);
@@ -400,25 +404,25 @@ async function fetchAllData() {
 
     // Parse regions from main page
     const regions = parseMainPage(mainPageHtml);
-    
+
     // Fetch and process each region's page
     console.log('\nFetching and processing region pages...');
     for (const region of regions) {
       try {
         console.log(`\nProcessing ${region.region}...`);
-        
+
         // Get region-specific paths
         const paths = getRegionPaths(region.region);
-        
+
         // Fetch region page
         const regionHtml = await fetchUrl(region.url);
         const regionFile = path.join(paths.htmlDir, 'index.html');
         saveToFile(regionFile, regionHtml);
         console.log(`HTML saved to: ${regionFile}`);
-        
+
         // Parse region page content and download documents
         const parsedContent = await parseRegionPage(regionHtml, region.url, paths.documentsDir);
-        
+
         // Add content and documents to region object
         region.contentHtml = parsedContent.contentHtml;
         region.documents = parsedContent.documents;
@@ -443,7 +447,7 @@ async function fetchAllData() {
 </body>
 </html>`;
         saveToFile(contentHtmlFile, htmlWrapper);
-        
+
         // Save region metadata
         const metadataFile = path.join(paths.regionDir, 'metadata.json');
         saveToFile(metadataFile, JSON.stringify({
@@ -454,7 +458,7 @@ async function fetchAllData() {
           documents: region.documents,
           lastUpdated: new Date().toISOString()
         }, null, 2));
-        
+
         // Add a small delay between regions
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
@@ -469,10 +473,10 @@ async function fetchAllData() {
       sourceUrl: url,
       regions: regions
     }, null, 2));
-    
+
     console.log(`\nFound ${regions.length} regions`);
     console.log(`Complete data saved to: ${jsonOutputFile}`);
-    
+
     // Print summary with location data information
     regions.forEach(region => {
       console.log(`\nRegion: ${region.region}`);

@@ -2,23 +2,24 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Layer, Map as MapLibre, Source, Popup } from 'react-map-gl/maplibre';
+import MaplibreGeocoder from '@maplibre/maplibre-gl-geocoder';
+import '@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css';
 
 interface MapProps {
   geoJson: GeoJSON.FeatureCollection;
   onFeatureClick: (feature: GeoJSON.Feature) => void;
   viewState: { longitude: number, latitude: number, zoom: number };
   setViewState: (viewState: { longitude: number, latitude: number, zoom: number }) => void;
-  onMapLoaded: (mpa: maplibregl.Map) => void;
+  onMapLoaded: (map: maplibregl.Map) => void;
 }
 
 const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
-
   const [currentViewState, setCurrentViewState] = useState({
     longitude: 37.7333,
     latitude: 55.9833,
     zoom: 11
-  })
-  const [featureUnderMouse, setFeatureUnderMouse] = useState<{feature: GeoJSON.Feature, coordinates: maplibregl.LngLat} | null>(null)
+  });
+  const [featureUnderMouse, setFeatureUnderMouse] = useState<{ feature: GeoJSON.Feature, coordinates: maplibregl.LngLat } | null>(null);
 
   return (
     <div className="relative h-full">
@@ -34,7 +35,6 @@ const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
         style={{ width: '100%', height: '100%' }}
         cursor={featureUnderMouse ? 'pointer' : 'auto'}
         onLoad={(event) => {
-          console.log(event)
           const map = event.target;
           map.on("mousemove", ['polygons', 'lines', 'points'], (e) => {
             if (!map) return;
@@ -45,7 +45,7 @@ const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
               const feature = e.features[0];
               const coordinates = e.lngLat;
 
-              setFeatureUnderMouse({feature, coordinates})
+              setFeatureUnderMouse({ feature, coordinates })
               //   .setHTML(`<h3>${feature.properties.name}</h3>`)
               //   .addTo(map);
             } else {
@@ -66,73 +66,50 @@ const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
             }
           });
 
-          // if (map.getSource('polygons')) {
-          //   map.removeLayer('polygons');
-          //   map.removeSource('polygons');
-          // }
-          // if (map.getLayer('routes')) {
-          //   map.removeLayer('routes');
-          //   map.removeSource('routes');
-          // }
-          // if (map.getLayer('markers')) {
-          //   map.removeLayer('markers');
-          //   map.removeSource('markers');
-          // }
-          // Add polygon layer
-
-          // map.addLayer({
-          //   id: 'restricted-areas',
-          //   type: 'fill',
-          //   source: {
-          //     type: 'geojson',
-          //     data: {
-          //       type: 'FeatureCollection',
-          //       features: geoJson.features.filter(f => f.geometry.type === 'Polygon')
-          //     }
-          //   },
-          //   paint: {
-          //     'fill-color': ['get', 'fillColor'],
-          //     'fill-opacity': ['get', 'fillOpacity'],
-          //     'fill-outline-color': ['get', 'strokeColor']
-          //   }
-          // });
-
-          // // Add line layer
-          // map.addLayer({
-          //   id: 'routes',
-          //   type: 'line',
-          //   source: {
-          //     type: 'geojson',
-          //     data: {
-          //       type: 'FeatureCollection',
-          //       features: geoJson.features.filter(f => f.geometry.type === 'LineString')
-          //     }
-          //   },
-          //   paint: {
-          //     'line-color': ['get', 'color'],
-          //     'line-width': ['get', 'width']
-          //   }
-          // });
-
-          // // Add point layer
-          // map.addLayer({
-          //   id: 'markers',
-          //   type: 'circle',
-          //   source: {
-          //     type: 'geojson',
-          //     data: {
-          //       type: 'FeatureCollection',
-          //       features: geoJson.features.filter(f => f.geometry.type === 'Point')
-          //     }
-          //   },
-          //   paint: {
-          //     'circle-radius': ['get', 'radius'],
-          //     'circle-color': ['get', 'color'],
-          //     'circle-stroke-width': ['get', 'strokeWidth'],
-          //     'circle-stroke-color': ['get', 'strokeColor']
-          //   }
-          // });
-
+          const geocoder = new MaplibreGeocoder({
+            forwardGeocode: async (config) => {
+              try {
+                const request = await fetch(
+                  `https://nominatim.openstreetmap.org/search?q=${config.query}&format=geojson&polygon_geojson=1&addressdetails=1`
+                );
+                const geojson = await request.json();
+                return {
+                  type: "FeatureCollection",
+                  features: geojson.features.map((feature: any) => {
+                    const center = [
+                      feature.bbox[0] + (feature.bbox[2] - feature.bbox[0]) / 2,
+                      feature.bbox[1] + (feature.bbox[3] - feature.bbox[1]) / 2
+                    ];
+                    return {
+                      type: "Feature",
+                      geometry: {
+                        type: "Point",
+                        coordinates: center
+                      },
+                      place_name: feature.properties.display_name,
+                      properties: feature.properties,
+                      text: feature.properties.display_name,
+                      place_type: ["place"],
+                      center: center
+                    };
+                  })
+                };
+              } catch (e) {
+                console.error(`Failed to forwardGeocode with error: ${e}`);
+                return {
+                  type: "FeatureCollection",
+                  features: []
+                };
+              }
+            }
+          }, {
+            maplibregl: maplibregl,
+            marker: true,
+            flyTo: {
+              duration: 2000
+            }
+          });
+          map.addControl(geocoder, 'top-left');
           onMapLoaded(map);
         }}
       >
@@ -174,7 +151,7 @@ const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
               'circle-radius': ['get', 'radius'],
               'circle-color': ['get', 'color'],
               'circle-stroke-width': ['get', 'strokeWidth'],
-              'circle-stroke-color': ['get', 'strokeColor'] 
+              'circle-stroke-color': ['get', 'strokeColor']
             }
           }} />
         </Source>
