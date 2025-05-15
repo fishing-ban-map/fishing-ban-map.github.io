@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Layer, Map as MapLibre, Source } from 'react-map-gl/maplibre';
+import { Layer, Map as MapLibre, Source, Popup } from 'react-map-gl/maplibre';
 
 interface MapProps {
   geoJson: GeoJSON.FeatureCollection;
@@ -18,6 +18,7 @@ const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
     latitude: 55.9833,
     zoom: 11
   })
+  const [featureUnderMouse, setFeatureUnderMouse] = useState<{feature: GeoJSON.Feature, coordinates: maplibregl.LngLat} | null>(null)
 
   return (
     <div className="relative h-full">
@@ -31,6 +32,7 @@ const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
         onMove={(e) => setCurrentViewState(e.viewState)}
         mapStyle="https://tiles.stadiamaps.com/styles/osm_bright.json"
         style={{ width: '100%', height: '100%' }}
+        cursor={featureUnderMouse ? 'pointer' : 'auto'}
         onLoad={(event) => {
           console.log(event)
           const map = event.target;
@@ -43,20 +45,17 @@ const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
               const feature = e.features[0];
               const coordinates = e.lngLat;
 
-              // popup.current
-              //   ?.setLngLat(coordinates)
+              setFeatureUnderMouse({feature, coordinates})
               //   .setHTML(`<h3>${feature.properties.name}</h3>`)
               //   .addTo(map);
             } else {
-              // map.getCanvas().style.cursor = '';
-              // popup.current?.remove();
+              setFeatureUnderMouse(null)
             }
           });
 
           map.on("mouseleave", ['polygons', 'lines', 'points'], () => {
             if (!map) return;
-            // map.getCanvas().style.cursor = '';
-            // popup.current?.remove();
+            setFeatureUnderMouse(null)
           });
 
           map.on("click", ['polygons', 'lines', 'points'], (e) => {
@@ -179,6 +178,17 @@ const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
             }
           }} />
         </Source>
+        {featureUnderMouse && (
+          <Popup
+            longitude={featureUnderMouse.coordinates.lng}
+            latitude={featureUnderMouse.coordinates.lat}
+            closeButton={false}
+          >
+            <div>
+              <h3>{featureUnderMouse.feature.properties?.name}</h3>
+            </div>
+          </Popup>
+        )}
       </MapLibre>
     </div>
   );
