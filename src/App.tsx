@@ -116,11 +116,13 @@ function App() {
   const [map, setMap] = useState<maplibregl.Map | null>(null);
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
   const [showWarning, setShowWarning] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   useEffect(() => {
     // Load regions data
     fetch('/fishing-ban-regions.json')
-      .then(response => response.json() as Promise<{ regions: FishingBanRegion[] }>)
+      .then(response => response.json() as Promise<{ regions: FishingBanRegion[], lastUpdated: string }>)
       .then(data => {
+        setLastUpdated(data.lastUpdated)
         const documentsToSelect: Document[] = []
         data.regions.forEach(region => {
           region.documents.forEach(document => {
@@ -221,10 +223,10 @@ function App() {
         {showWarning && (
           <div className="p-1 bg-yellow-50 border-b border-yellow-200 text-sm flex items-center justify-center relative">
             <span>Внимание!
-              Данная карта использует информацию об участках с официального сайта <a href="https://fish.gov.ru" target="_blank" rel="noopener noreferrer">fish.gov.ru</a>.
+              Данная карта использует информацию об участках с официального сайта <a href="https://fish.gov.ru" target="_blank" rel="noopener noreferrer">fish.gov.ru</a>{lastUpdated ? ` от ${new Date(lastUpdated).toLocaleDateString()}` : ''}.
               Актуальность и точность данных может устареть в любой момент.
-              Для получения достоверной информации необходимо использовать официальные документы Росрыболовства или обращаться в его территориальные органы.</span>
-            <button 
+              Для получения достоверной информации необходимо использовать официальные документы Росрыболовства.</span>
+            <button
               onClick={() => setShowWarning(false)}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
             >
@@ -254,7 +256,7 @@ function App() {
         </div>
       </div>
     </div>
-      );
+  );
 }
 
-      export default App;
+export default App;
