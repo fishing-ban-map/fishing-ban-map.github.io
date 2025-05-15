@@ -165,6 +165,8 @@ function App() {
               fillOpacity: 0.3,
               strokeColor: '#ff0000',
               name: row.header,
+              region: document.region?.region,
+              document: document.title,
               documentIndex,
               rowIndex
             }
@@ -180,6 +182,8 @@ function App() {
               color: '#ff0000',
               width: 2,
               name: row.header,
+              region: document.region?.region,
+              document: document.title,
               documentIndex,
               rowIndex
             }
@@ -197,6 +201,8 @@ function App() {
               strokeColor: '#ff0000',
               strokeWidth: 2,
               name: row.header,
+              region: document.region?.region,
+              document: document.title,
               documentIndex,
               rowIndex
             }
@@ -207,14 +213,16 @@ function App() {
     setFeatures(features)
   }, [selectedDocuments, regions])
 
-  const handleFeatureClick = (feature: GeoJSON.Feature) => {
+  console.log(selectedDocuments)
+  const handleFeatureClick = useCallback((feature: GeoJSON.Feature) => {
     if (feature.properties?.documentIndex !== undefined && feature.properties?.rowIndex !== undefined) {
+      console.log(selectedDocuments)
       const document = selectedDocuments[feature.properties.documentIndex]
       setSelectedRegion(document.region || null)
       setOpenedDocument(document || null)
       setSelectedRow(feature.properties.rowIndex || null)
     }
-  }
+  }, [selectedDocuments])
 
   return (
     <div className="flex h-screen w-screen overflow-hidden">
@@ -250,7 +258,7 @@ function App() {
 
           </div>
           <div className="flex-1 h-full bg-gray-50">
-            <Map geoJson={features} onFeatureClick={handleFeatureClick} viewState={viewState} setViewState={setViewState} onMapLoaded={(map) => setMap(map)} />
+            <Map geoJson={features} onFeatureClick={(feature) => handleFeatureClick(feature)} viewState={viewState} setViewState={setViewState} onMapLoaded={(map) => setMap(map)} />
           </div>
         </div>
       </div>

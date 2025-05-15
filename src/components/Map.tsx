@@ -11,7 +11,7 @@ import { point } from '@turf/helpers';
 import type { Feature, FeatureCollection, LineString, Point, Polygon, Position } from 'geojson';
 
 // Constants
-const MAX_DISTANCE_KM = 10; // Maximum distance between points in kilometers
+const MAX_DISTANCE_KM = 100; // Maximum distance between points in kilometers
 
 // Helper function to add a small random offset to coordinates
 function fuzzCoordinate(coord: Position, index: number): Position {
@@ -111,7 +111,7 @@ function splitPolygonIfNeeded(feature: Feature<Polygon>): Feature<Polygon | Line
   addCurrentPart()
 
   if (result.length > 1) {
-    console.error(`Расстояние между точками для участка ${feature.properties?.name} больше ${MAX_DISTANCE_KM} км: ${maxDistance}`, feature)
+    console.error(`Расстояние между точками больше ${MAX_DISTANCE_KM} км (${maxDistance.toFixed(1)} км) для участка ${feature.properties?.region} ${feature.properties?.name}`, feature)
   }
 
   return result.length > 1 ? result : [feature];
