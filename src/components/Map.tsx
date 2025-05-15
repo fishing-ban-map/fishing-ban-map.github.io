@@ -85,7 +85,6 @@ const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
           } as Feature<Polygon>;
         });
       } catch (e) {
-        console.log('Error in feature:', feature);
         console.error('Error unkinking polygon:', e);
         return [feature]; // Return original feature if unkinking fails
       }

@@ -25,10 +25,9 @@ function DocumentRow({ row, isExpanded, onToggle, map, selectedRow, setSelectedR
 
   return (
     <div className={`border-b border-gray-200 last:border-0 ${isExpanded ? 'bg-gray-300' : hasPoints ? 'hover:bg-gray-100' : ''}`}>
-      <div 
-        className={`p-1 flex items-center justify-between ${
-          hasPoints ? 'cursor-pointer' : ''
-        }`}
+      <div
+        className={`p-1 flex items-center justify-between ${hasPoints ? 'cursor-pointer' : ''
+          }`}
         onClick={() => {
           if (hasPoints) {
             onToggle()
@@ -52,7 +51,7 @@ function DocumentRow({ row, isExpanded, onToggle, map, selectedRow, setSelectedR
                   bounds[1][0], // east
                   bounds[1][1]  // north
                 ];
-                
+
                 map.fitBounds(lngLatBounds, {
                   padding: 100,
                   duration: 2000
@@ -65,9 +64,8 @@ function DocumentRow({ row, isExpanded, onToggle, map, selectedRow, setSelectedR
         <div className={`flex-1 overflow-hidden ${!isExpanded ? 'text-ellipsis whitespace-nowrap' : ''}`}>{displayText}</div>
         {hasPoints && (
           <svg
-            className={`w-5 h-5 transform transition-transform ${
-              isExpanded ? 'rotate-180' : ''
-            }`}
+            className={`w-5 h-5 transform transition-transform ${isExpanded ? 'rotate-180' : ''
+              }`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -113,33 +111,32 @@ export default function Document({ document, onBack, map, selectedRow, setSelect
   };
   const selectedRowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    console.log(selectedRowRef)
     if (selectedRowRef.current) {
       if (!selectedRowRef.current.getBoundingClientRect().top || selectedRowRef.current.getBoundingClientRect().top < 0 || selectedRowRef.current.getBoundingClientRect().bottom > window.innerHeight) {
         selectedRowRef.current.scrollIntoView({ behavior: 'smooth' })
       }
     }
   }, [selectedRow, selectedRowRef])
-  console.log(selectedRow)
+
   return (
     <div className="p-5 h-full flex flex-col">
       {/* Header with back button */}
       <div className="flex items-center mb-5">
-        <button 
+        <button
           onClick={onBack}
           className="flex items-center text-blue-600 hover:text-blue-800 transition-colors"
         >
-          <svg 
-            className="w-5 h-5 mr-1" 
-            fill="none" 
-            stroke="currentColor" 
+          <svg
+            className="w-5 h-5 mr-1"
+            fill="none"
+            stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M15 19l-7-7 7-7" 
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
             />
           </svg>
           Назад
@@ -147,15 +144,17 @@ export default function Document({ document, onBack, map, selectedRow, setSelect
       </div>
 
       {/* Document title */}
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">
-        {document.header}
+      <h1 className="text-lg font-bold text-gray-900 mb-4">
+        {document.header ? (document.header.charAt(0).toUpperCase() + document.header.slice(1).toLowerCase()) : ''}
       </h1>
 
-      {document.rows.map((row, idx) => (
-        <div key={idx} ref={ idx === selectedRow ? selectedRowRef : undefined }>
-          <DocumentRow row={row} isExpanded={idx === selectedRow} onToggle={() => toggleRow(idx)} map={map} selectedRow={selectedRow} setSelectedRow={setSelectedRow} />
-        </div>
-      ))}
+      <div className="flex-1 overflow-y-auto shadow-md rounded-lg p-4">
+        {document.rows.map((row, idx) => (
+          <div key={idx} ref={idx === selectedRow ? selectedRowRef : undefined}>
+            <DocumentRow row={row} isExpanded={idx === selectedRow} onToggle={() => toggleRow(idx)} map={map} selectedRow={selectedRow} setSelectedRow={setSelectedRow} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 } 

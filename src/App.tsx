@@ -135,7 +135,6 @@ function App() {
             }
           });
         });
-        console.log(data.regions, features)
         setRegions(data.regions || []);
         setSelectedDocuments(documentsToSelect)
       })
