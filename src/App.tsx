@@ -229,7 +229,7 @@ function App() {
             <span>Внимание!
               Данная карта использует информацию об участках с официального сайта <a href="https://moktu.fish.gov.ru/activities/rybookhrana/vnimanie-nerest/" target="_blank" rel="noopener noreferrer">fish.gov.ru</a>{lastUpdated ? ` от ${new Date(lastUpdated).toLocaleDateString()}` : ''}. Из-за большого колличества ошибок в данных, некоторые участки отображаются вытянутыми полигонами.
               Актуальность и точность данных может устареть в любой момент.
-              Для получения достоверной информации необходимо использовать официальные документы Росрыболовства. </span>
+              Для получения достоверной информации необходимо использовать официальные документы Росрыболовства. Предложения по улучшению сайта принимаются <a href="https://github.com/fishing-ban-map/fishing-ban-map.github.io/issues">тут</a>.</span>
             <button
               onClick={() => setShowWarning(false)}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
