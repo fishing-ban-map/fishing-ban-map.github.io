@@ -214,15 +214,17 @@ function App() {
   }, [selectedDocuments, regions])
 
   console.log(selectedDocuments)
-  const handleFeatureClick = useCallback((feature: GeoJSON.Feature) => {
+  const handleFeatureClick = (feature: GeoJSON.Feature) => {
     if (feature.properties?.documentIndex !== undefined && feature.properties?.rowIndex !== undefined) {
-      console.log(selectedDocuments)
-      const document = selectedDocuments[feature.properties.documentIndex]
-      setSelectedRegion(document.region || null)
-      setOpenedDocument(document || null)
-      setSelectedRow(feature.properties.rowIndex || null)
+      setSelectedDocuments(prev => {
+        const document = prev[feature.properties!.documentIndex]
+        setSelectedRegion(document.region || null)
+        setOpenedDocument(document || null)
+        setSelectedRow(feature.properties!.rowIndex || null)
+        return prev
+      })
     }
-  }, [selectedDocuments])
+  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden">
