@@ -244,9 +244,9 @@ function App() {
           {/* Mobile menu toggle button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden fixed top-2 left-2 z-20 bg-white p-2 rounded-md shadow-md"
+            className="md:hidden fixed bottom-4 left-4 z-20 bg-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center"
           >
-            {isMobileMenuOpen ? '✕' : '☰'}
+            <span className="text-xl">{isMobileMenuOpen ? '✕' : '☰'}</span>
           </button>
 
           {/* Sidebar */}
