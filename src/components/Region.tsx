@@ -75,7 +75,7 @@ export default function Region({ region, onBack, openedDocument, setOpenedDocume
   }
 
   return (
-    <div className="p-5 h-full flex flex-col">
+    <div className="px-4 py-2 h-full flex flex-col">
       {/* Header with back button */}
       <div className="flex items-center mb-5">
         <button
@@ -100,22 +100,22 @@ export default function Region({ region, onBack, openedDocument, setOpenedDocume
       </div>
 
       {/* Region title */}
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">
         {region.region}
       </h1>
 
       {/* Content section */}
-      <div className="bg-white rounded-lg shadow mb-4 flex-grow overflow-y-auto">
+      <div className="bg-white rounded-lg shadow mb-2 flex-grow overflow-y-auto">
         <div
-          className="p-4 prose prose-sm max-w-none"
+          className="px-4 py-2 prose prose-sm max-w-none"
           dangerouslySetInnerHTML={{ __html: processHtmlContent(region.contentHtml) }}
         />
       </div>
 
       {/* Documents section */}
       {region.documents.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-4">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">
+        <div className="bg-white rounded-lg shadow px-4 py-2">
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">
             Участки
           </h2>
           {error && (
@@ -123,18 +123,18 @@ export default function Region({ region, onBack, openedDocument, setOpenedDocume
               {error}
             </div>
           )}
-          <ul className="space-y-2">
+          <ul className="space-y-1">
             {region.documents.map((doc, index) => (
               <li
                 key={index}
-                className="flex items-center p-2 mb-2 border rounded-lg cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:translate-y-[-1px] hover:shadow-sm"
+                className="flex p-2 border rounded-lg cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:translate-y-[-1px] hover:shadow-sm"
               >
                 <button
                   onClick={() => handleDocumentClick(index)}
-                  className="flex items-center text-gray-700  w-full text-left hover:cursor-pointer"
+                  className="flex w-full text-left hover:cursor-pointer"
                 >
                   <svg
-                    className="w-5 h-5 mr-2 flex-shrink-0"
+                    className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -146,7 +146,7 @@ export default function Region({ region, onBack, openedDocument, setOpenedDocume
                       d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                     />
                   </svg>
-                  <span>{doc.title}</span>
+                  <span className="text-gray-900 line-clamp-2">{doc.title}</span>
                 </button>
               </li>
             ))}
