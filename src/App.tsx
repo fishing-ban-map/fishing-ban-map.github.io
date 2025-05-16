@@ -112,6 +112,8 @@ function App() {
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
   const [showWarning, setShowWarning] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   useEffect(() => {
     // Load regions data
     fetch('/fishing-ban-regions.json')
@@ -226,7 +228,7 @@ function App() {
       <div className="flex flex-col h-screen w-screen overflow-hidden">
         {showWarning && (
           <div className="p-1 bg-yellow-50 border-b border-yellow-200 text-sm flex items-center justify-center relative">
-            <span>Внимание!
+            <span className="text-xs md:text-sm px-2">Внимание!
               Данная карта использует информацию об участках с официального сайта <a href="https://moktu.fish.gov.ru/activities/rybookhrana/vnimanie-nerest/" target="_blank" rel="noopener noreferrer">fish.gov.ru</a>{lastUpdated ? ` от ${new Date(lastUpdated).toLocaleDateString()}` : ''}. Из-за большого колличества ошибок в данных, некоторые участки отображаются вытянутыми полигонами.
               Актуальность и точность данных может устареть в любой момент.
               Для получения достоверной информации необходимо использовать официальные документы Росрыболовства. Предложения по улучшению сайта принимаются <a href="https://github.com/fishing-ban-map/fishing-ban-map.github.io/issues">тут</a>.</span>
@@ -238,8 +240,29 @@ function App() {
             </button>
           </div>
         )}
-        <div className="flex flex-1 overflow-hidden">
-          <div className="w-1/3 h-full border-r border-gray-200 overflow-y-auto bg-white">
+        <div className="flex flex-col md:flex-row flex-1 overflow-hidden relative">
+          {/* Mobile menu toggle button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden fixed top-2 left-2 z-20 bg-white p-2 rounded-md shadow-md"
+          >
+            {isMobileMenuOpen ? '✕' : '☰'}
+          </button>
+
+          {/* Sidebar */}
+          <div className={`
+            ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+            md:translate-x-0
+            transition-transform
+            duration-300
+            fixed md:relative
+            z-10
+            w-full md:w-1/3
+            h-full
+            border-r border-gray-200
+            overflow-y-auto
+            bg-white
+          `}>
             <RegionList
               regions={regions}
               selectedRegion={selectedRegion}
@@ -252,11 +275,24 @@ function App() {
               selectedRow={selectedRow}
               setSelectedRow={setSelectedRow}
             />
+          </div>
 
-          </div>
+          {/* Map container */}
           <div className="flex-1 h-full bg-gray-50">
-            <Map geoJson={features} onFeatureClick={(feature) => handleFeatureClick(feature)} onMapLoaded={(map) => setMap(map)} />
+            <Map
+              geoJson={features}
+              onFeatureClick={(feature) => handleFeatureClick(feature)}
+              onMapLoaded={(map) => setMap(map)}
+            />
           </div>
+
+          {/* Mobile overlay */}
+          {isMobileMenuOpen && (
+            <div
+              className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-[5]"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+          )}
         </div>
       </div>
     </div>
