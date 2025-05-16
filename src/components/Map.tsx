@@ -12,6 +12,36 @@ import type { Feature, FeatureCollection, LineString, Point, Polygon, Position }
 
 // Constants
 const MAX_DISTANCE_KM = 100; // Maximum distance between points in kilometers
+const DEFAULT_CENTER = {
+  longitude: 37.7321,
+  latitude: 55.7599,
+  zoom: 9.07
+};
+
+// Helper function to get coordinates from URL
+const getCoordinatesFromUrl = () => {
+  const params = new URLSearchParams(window.location.search);
+  const lng = parseFloat(params.get('lng') || String(DEFAULT_CENTER.longitude));
+  const lat = parseFloat(params.get('lat') || String(DEFAULT_CENTER.latitude));
+  const zoom = parseFloat(params.get('zoom') || String(DEFAULT_CENTER.zoom));
+
+  return {
+    longitude: isNaN(lng) ? DEFAULT_CENTER.longitude : lng,
+    latitude: isNaN(lat) ? DEFAULT_CENTER.latitude : lat,
+    zoom: isNaN(zoom) ? DEFAULT_CENTER.zoom : zoom
+  };
+};
+
+// Helper function to update URL with coordinates
+const updateUrlWithCoordinates = (longitude: number, latitude: number, zoom: number) => {
+  const params = new URLSearchParams(window.location.search);
+  params.set('lng', longitude.toFixed(4));
+  params.set('lat', latitude.toFixed(4));
+  params.set('zoom', zoom.toFixed(2));
+
+  const newUrl = `${window.location.pathname}?${params.toString()}`;
+  window.history.replaceState({}, '', newUrl);
+};
 
 // Helper function to add a small random offset to coordinates
 function fuzzCoordinate(coord: Position, index: number): Position {
@@ -120,18 +150,19 @@ function splitPolygonIfNeeded(feature: Feature<Polygon>): Feature<Polygon | Line
 interface MapProps {
   geoJson: GeoJSON.FeatureCollection;
   onFeatureClick: (feature: GeoJSON.Feature) => void;
-  viewState: { longitude: number, latitude: number, zoom: number };
-  setViewState: (viewState: { longitude: number, latitude: number, zoom: number }) => void;
   onMapLoaded: (map: maplibregl.Map) => void;
 }
 
 const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
-  const [currentViewState, setCurrentViewState] = useState({
-    longitude: 37.7333,
-    latitude: 55.9833,
-    zoom: 11
-  });
+  const [currentViewState, setCurrentViewState] = useState(getCoordinatesFromUrl());
   const [featureUnderMouse, setFeatureUnderMouse] = useState<{ feature: GeoJSON.Feature, coordinates: maplibregl.LngLat } | null>(null);
+
+  // Update URL when map view changes
+  const handleMoveEnd = useCallback((e: any) => {
+    const { longitude, latitude, zoom } = e.viewState;
+    updateUrlWithCoordinates(longitude, latitude, zoom);
+    setCurrentViewState(e.viewState);
+  }, []);
 
   // Process polygons to fix self-intersections
   const processedGeoJson = useMemo(() => {
@@ -190,13 +221,8 @@ const Map = ({ geoJson, onFeatureClick, onMapLoaded }: MapProps) => {
   return (
     <div className="relative h-full">
       <MapLibre
-        initialViewState={{
-          longitude: 37.7333,
-          latitude: 55.9833,
-          zoom: 11
-        }}
-        {...currentViewState}
-        onMove={(e) => setCurrentViewState(e.viewState)}
+        initialViewState={currentViewState}
+        onMoveEnd={handleMoveEnd}
         mapStyle="https://tiles.stadiamaps.com/styles/osm_bright.json"
         style={{ width: '100%', height: '100%' }}
         cursor={featureUnderMouse ? 'pointer' : 'auto'}

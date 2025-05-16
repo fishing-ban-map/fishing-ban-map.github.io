@@ -108,11 +108,6 @@ function App() {
     type: 'FeatureCollection',
     features: []
   });
-  const [viewState, setViewState] = useState({
-    longitude: 37.7333,
-    latitude: 55.9833,
-    zoom: 11
-  });
   const [map, setMap] = useState<maplibregl.Map | null>(null);
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
   const [showWarning, setShowWarning] = useState(true);
@@ -232,9 +227,9 @@ function App() {
         {showWarning && (
           <div className="p-1 bg-yellow-50 border-b border-yellow-200 text-sm flex items-center justify-center relative">
             <span>Внимание!
-              Данная карта использует информацию об участках с официального сайта <a href="https://fish.gov.ru" target="_blank" rel="noopener noreferrer">fish.gov.ru</a>{lastUpdated ? ` от ${new Date(lastUpdated).toLocaleDateString()}` : ''}.
+              Данная карта использует информацию об участках с официального сайта <a href="https://moktu.fish.gov.ru/activities/rybookhrana/vnimanie-nerest/" target="_blank" rel="noopener noreferrer">fish.gov.ru</a>{lastUpdated ? ` от ${new Date(lastUpdated).toLocaleDateString()}` : ''}. Из-за большого колличества ошибок в данных, некоторые участки отображаются вытянутыми полигонами.
               Актуальность и точность данных может устареть в любой момент.
-              Для получения достоверной информации необходимо использовать официальные документы Росрыболовства.</span>
+              Для получения достоверной информации необходимо использовать официальные документы Росрыболовства. </span>
             <button
               onClick={() => setShowWarning(false)}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
@@ -260,7 +255,7 @@ function App() {
 
           </div>
           <div className="flex-1 h-full bg-gray-50">
-            <Map geoJson={features} onFeatureClick={(feature) => handleFeatureClick(feature)} viewState={viewState} setViewState={setViewState} onMapLoaded={(map) => setMap(map)} />
+            <Map geoJson={features} onFeatureClick={(feature) => handleFeatureClick(feature)} onMapLoaded={(map) => setMap(map)} />
           </div>
         </div>
       </div>
